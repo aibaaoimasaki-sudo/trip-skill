@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>杭州→成都 5日攻略 ✈️</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,'Microsoft YaHei','PingFang SC',sans-serif;background:linear-gradient(135deg,#667eea,#764ba2);min-height:100vh;color:#333}
+.header{text-align:center;padding:40px 20px 20px;color:#fff}
+.header h1{font-size:2.2em;text-shadow:2px 2px 8px rgba(0,0,0,.3)}
+.header .subtitle{font-size:1.1em;opacity:.9;margin-top:8px}
+.header .tags{margin-top:12px;display:flex;justify-content:center;gap:10px;flex-wrap:wrap}
+.header .tag{background:rgba(255,255,255,.2);backdrop-filter:blur(10px);padding:6px 16px;border-radius:20px;font-size:.9em}
+.container{max-width:1000px;margin:0 auto;padding:0 16px 40px}
+.section-title{color:#fff;font-size:1.5em;margin:30px 0 16px;padding-left:12px;border-left:4px solid #ffd700}
+/* 地图 */
+.map-wrapper{background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.15);margin-bottom:24px}
+#map{height:600px;width:100%}
+.map-controls{display:flex;gap:8px;padding:12px;flex-wrap:wrap;background:#f8f9fa;position:sticky;top:0;z-index:900;box-shadow:0 2px 8px rgba(0,0,0,.15);border-radius:0 0 12px 12px;margin-bottom:24px}
+.day-btn{padding:8px 18px;border:none;border-radius:20px;cursor:pointer;font-size:.9em;font-weight:600;transition:all .3s;background:#e9ecef;color:#495057}
+.day-btn.active{color:#fff;transform:scale(1.05)}
+.day-btn:hover{transform:scale(1.05)}
+.nav-btn{background:#dfe6e9;color:#2d3436;border-left:none}
+.nav-btn:hover{background:#b2bec3;color:#fff}
+.day-btn[data-day="0"]{}.day-btn[data-day="0"].active{background:#6c5ce7}
+.day-btn[data-day="1"]{}.day-btn[data-day="1"].active{background:#0984e3}
+.day-btn[data-day="2"]{}.day-btn[data-day="2"].active{background:#00b894}
+.day-btn[data-day="3"]{}.day-btn[data-day="3"].active{background:#e17055}
+.day-btn[data-day="4"]{}.day-btn[data-day="4"].active{background:#6c5ce7}
+.day-btn[data-day="all"]{}.day-btn[data-day="all"].active{background:#2d3436}
+/* 行程卡片 */
+.day-card{background:#fff;border-radius:16px;padding:24px;margin-bottom:20px;box-shadow:0 4px 20px rgba(0,0,0,.1);position:relative;overflow:hidden}
+.day-card::before{content:'';position:absolute;top:0;left:0;width:6px;height:100%}
+.day-card.day1::before{background:linear-gradient(180deg,#0984e3,#74b9ff)}
+.day-card.day2::before{background:linear-gradient(180deg,#00b894,#55efc4)}
+.day-card.day3::before{background:linear-gradient(180deg,#e17055,#fab1a0)}
+.day-card.day4::before{background:linear-gradient(180deg,#6c5ce7,#a29bfe)}
+.day-card.day5::before{background:linear-gradient(180deg,#fdcb6e,#ffeaa7)}
+.day-header{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.day-num{width:48px;height:48px;border-radius:50%;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.1em;flex-shrink:0}
+.day1 .day-num{background:#0984e3}
+.day2 .day-num{background:#00b894}
+.day3 .day-num{background:#e17055}
+.day4 .day-num{background:#6c5ce7}
+.day5 .day-num{background:#f39c12}
+.day-title{font-size:1.3em;font-weight:700}
+.day-subtitle{font-size:.85em;color:#888;margin-top:2px}
+.timeline{position:relative;padding-left:28px}
+.timeline::before{content:'';position:absolute;left:8px;top:8px;bottom:8px;width:2px;background:#e9ecef}
+.t-item{position:relative;margin-bottom:18px;padding-bottom:18px;border-bottom:1px dashed #f0f0f0}
+.t-item:last-child{margin-bottom:0;padding-bottom:0;border-bottom:none}
+.t-item::before{content:'';position:absolute;left:-24px;top:6px;width:12px;height:12px;border-radius:50%;background:#dfe6e9;border:2px solid #fff;box-shadow:0 0 0 2px #dfe6e9}
+.t-item.highlight::before{background:#0984e3;box-shadow:0 0 0 2px #74b9ff}
+.t-time{font-weight:700;color:#6c5ce7;font-size:.95em}
+.t-place{font-weight:600;font-size:1.05em;margin:4px 0}
+.t-desc{color:#666;font-size:.9em;line-height:1.6}
+.t-food{background:#fff3e0;padding:8px 12px;border-radius:8px;margin-top:8px;font-size:.85em}
+.t-food::before{content:'🍜 '}
+.t-tip{background:#e8f5e9;padding:8px 12px;border-radius:8px;margin-top:6px;font-size:.85em}
+.t-tip::before{content:'💡 '}
+.t-ticket{background:#e3f2fd;padding:8px 12px;border-radius:8px;margin-top:6px;font-size:.85em}
+.t-ticket::before{content:'🎫 '}
+/* 交通面板 */
+.info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:24px}
+.info-card{background:#fff;border-radius:16px;padding:20px;box-shadow:0 4px 20px rgba(0,0,0,.1)}
+.info-card h3{font-size:1.1em;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.info-card .icon{font-size:1.4em}
+.info-table{width:100%;border-collapse:collapse;font-size:.9em}
+.info-table th{text-align:left;padding:8px;background:#f8f9fa;border-radius:4px;font-weight:600}
+.info-table td{padding:8px;border-bottom:1px solid #f0f0f0}
+.info-table tr:last-child td{border-bottom:none}
+/* 费用 */
+.cost-card{background:#fff;border-radius:16px;padding:24px;box-shadow:0 4px 20px rgba(0,0,0,.1);margin-bottom:24px}
+.cost-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f0f0f0;font-size:.95em}
+.cost-row:last-child{border-bottom:none}
+.cost-row.total{font-weight:700;font-size:1.1em;color:#6c5ce7;border-top:2px solid #6c5ce7;margin-top:8px;padding-top:14px}
+.cost-label{color:#555}
+.cost-value{font-weight:600}
+/* 注意事项 */
+.tips-card{background:#fff;border-radius:16px;padding:24px;box-shadow:0 4px 20px rgba(0,0,0,.1);margin-bottom:16px}
+.tip-item{padding:10px 0;border-bottom:1px solid #f0f0f0;font-size:.9em;line-height:1.6}
+.tip-item:last-child{border-bottom:none}
+.tip-icon{margin-right:8px}
+/* 响应式 */
+@media(max-width:768px){
+  .header h1{font-size:1.6em}
+  #map{height:350px}
+  .day-card{padding:16px}
+  .day-title{font-size:1.1em}
+  .info-grid{grid-template-columns:1fr}
+  .map-controls{justify-content:center}
+  .day-btn{padding:6px 14px;font-size:.8em}
+}
+@media(max-width:480px){
+  #map{height:300px}
+  .header{padding:24px 12px 12px}
+  .header h1{font-size:1.3em}
+  .container{padding:0 10px 24px}
+  .day-btn{padding:5px 10px;font-size:.75em}
+}
+/* 返回顶部 */
+.back-top{position:fixed;right:24px;bottom:32px;width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#ffd700,#f39c12);color:#333;border:none;cursor:pointer;font-size:18px;font-weight:900;box-shadow:0 4px 20px rgba(243,156,18,.4);display:flex;align-items:center;justify-content:center;opacity:0;visibility:hidden;transition:all .3s;z-index:999}
+.back-top.show{opacity:1;visibility:visible}
+.back-top:hover{transform:scale(1.15);box-shadow:0 6px 28px rgba(243,156,18,.6)}
+@media(max-width:480px){.back-top{right:16px;bottom:20px;width:40px;height:40px;font-size:18px}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>✈️ 杭州 → 成都 5日攻略</h1>
+  <div class="subtitle">巴适得板！品味天府之国的烟火与悠闲</div>
+  <div class="tags">
+    <span class="tag">✈️ 飞机往返</span>
+    <span class="tag">👫 2人出行</span>
+    <span class="tag">🌙 晚起党</span>
+    <span class="tag">📅 5天4晚</span>
+  </div>
+</div>
+
+<div class="container">
+
+<!-- 地图 -->
+<h2 class="section-title">🗺️ 行程地图</h2>
+<div class="map-wrapper">
+  <div id="map"></div>
+</div>
+<div class="map-controls">
+    <button class="day-btn active" data-day="all" onclick="showDay('all')">全部行程</button>
+    <button class="day-btn" data-day="0" onclick="showDay(0)">Day1 抵达</button>
+    <button class="day-btn" data-day="1" onclick="showDay(1)">Day2 经典</button>
+    <button class="day-btn" data-day="2" onclick="showDay(2)">Day3 熊猫</button>
+    <button class="day-btn" data-day="3" onclick="showDay(3)">Day4 都江堰</button>
+    <button class="day-btn" data-day="4" onclick="showDay(4)">Day5 返程</button>
+    <span style="border-left:2px solid #ccc;margin:0 4px"></span>
+    <button class="day-btn nav-btn" onclick="scrollToSection('section-traffic')">✈️ 交通</button>
+    <button class="day-btn nav-btn" onclick="scrollToSection('section-hotel')">🏨 住宿</button>
+    <button class="day-btn nav-btn" onclick="scrollToSection('section-cost')">💰 费用</button>
+    <button class="day-btn nav-btn" onclick="scrollToSection('section-weather')">🌦️ 天气</button>
+    <button class="day-btn nav-btn" onclick="scrollToSection('section-food')">🌶️ 饮食</button>
+    <button class="day-btn nav-btn" onclick="scrollToSection('section-tips')">📌 注意事项</button>
+</div>
+
+<!-- Day 1 -->
+<div class="module" data-module="days">
+<h2 class="section-title">📋 每日行程</h2>
+<div class="day-card day1" data-daycard="0">
+  <div class="day-header">
+    <div class="day-num">D1</div>
+    <div>
+      <div class="day-title">抵达成都 · 春熙路太古里</div>
+      <div class="day-subtitle">✈️ 杭州萧山机场 → 成都天府机场 → 市区</div>
+    </div>
+  </div>
+  <div class="timeline">
+    <div class="t-item highlight">
+      <div class="t-time">10:00 - 13:00</div>
+      <div class="t-place">✈️ 杭州萧山机场 → 成都天府国际机场</div>
+      <div class="t-desc">建议选上午航班，飞行约3小时。天府机场T1/T2航站楼，到达后跟指引出站。</div>
+      <div class="t-tip">提前在12306APP买好天府机场到市区的地铁票，也可直接刷支付宝乘车</div>
+    </div>
+    <div class="t-item">
+      <div class="t-time">13:00 - 14:30</div>
+      <div class="t-place">🚇 天府机场 → 酒店</div>
+      <div class="t-desc">地铁18号线到世纪城/春熙路方向，约1-1.5小时，票价约10元/人。打车约200元/45分钟（推荐2人打车更划算）。</div>
+      <div class="t-tip">酒店建议选春熙路/太古里周边，交通便利，吃喝方便，推荐连住4晚</div>
+    </div>
+    <div class="t-item">
+      <div class="t-time">14:30 - 15:30</div>
+      <div class="t-place">🏨 办理入住 · 休息调整</div>
+      <div class="t-desc">放行李、稍作休息。周边便利店买水和零食。</div>
+    </div>
+    <div class="t-item highlight">
+      <div class="t-time">15:30 - 18:00</div>
+      <div class="t-place">🛍️ 春熙路 · IFS · 太古里</div>
+      <div class="t-desc">成都最繁华的商圈，IFS楼顶的爬墙大熊猫是地标，太古里时尚开放式街区，感受成都的潮流与烟火气。</div>
+      <div class="t-ticket">免费开放，IFS观景台免费</div>
+    </div>
+    <div class="t-item">
+      <div class="t-time">18:00 - 19:30</div>
+      <div class="t-place">🍜 晚餐</div>
+      <div class="t-desc">春熙路周边觅食，开启成都美食之旅。</div>
+      <div class="t-food">推荐：龙抄手（总店）、钟水饺、赖汤圆、担担面。人均50-80元</div>
+    </div>
+    <div class="t-item highlight">
+      <div class="t-time">20:00 - 22:00</div>
+      <div class="t-place">🏮 锦里古街夜景</div>
+      <div class="t-desc">成都最有名的古街之一，夜晚灯笼亮起非常有氛围。小吃、手工艺品、茶馆，慢慢逛。</div>
+      <div class="t-food">锦里小吃：三大炮、糖油果子、兔头、叶儿粑，边走边吃</div>
+    </div>
+  </div>
+</div>
+
+<!-- Day 2 -->
+<div class="day-card day2" data-daycard="1">
+  <div class="day-header">
+    <div class="day-num">D2</div>
+    <div>
+      <div class="day-title">武侯祠 · 杜甫草堂 · 宽窄巷子</div>
+      <div class="day-subtitle">📍 成都经典文化一日游</div>
+    </div>
+  </div>
+  <div class="timeline">
+    <div class="t-item">
+      <div class="t-time">10:30</div>
+      <div class="t-place">🌅 自然醒 · 酒店早/午餐</div>
+      <div class="t-desc">睡到自然醒，酒店附近吃个brunch或来碗肥肠粉。</div>
+      <div class="t-food">推荐：肥肠粉+锅盔，标配成都早餐，人均15元</div>
+    </div>
+    <div class="t-item highlight">
+      <div class="t-time">11:00 - 13:00</div>
+      <div class="t-place">⚔️ 武侯祠</div>
+      <div class="t-desc">中国唯一的君臣合祀祠庙，纪念诸葛亮和刘备。红墙竹影是经典拍照打卡点，文化底蕴深厚。</div>
+      <div class="t-ticket">门票50元/人，建议提前网上购票</div>
+    </div>
+    <div class="t-item">
+      <div class="t-time">13:00 - 14:00</div>
+      <div class="t-place">🍜 午餐</div>
+      <div class="t-food">推荐：武侯祠附近的马路边边麻辣烫，或者甲第巷老火锅，人均80-120元</div>
+    </div>
+    <div class="t-item highlight">
+      <div class="t-time">14:30 - 16:30</div>
+      <div class="t-place">🏡 杜甫草堂</div>
+      <div class="t-desc">唐代大诗人杜甫流寓成都时的故居，园林清幽，茅屋故居、花径、工部祠都值得细看。</div>
+      <div class="t-ticket">门票50元/人</div>
+    </div>
+    <div class="t-item">
+      <div class="t-time">16:30 - 17:30</div>
+      <div class="t-place">🌿 浣花溪公园</div>
+      <div class="t-desc">紧邻杜甫草堂，免费开放的市民公园，沿溪散步非常惬意，感受成都人的悠闲生活。</div>
+    </div>
+    <div class="t-item highlight">
+      <div class="t-time">18:00 - 21:00</div>
+      <div class="t-place">🏮 宽窄巷子</div>
+      <div class="t-desc">宽巷子、窄巷子、井巷子三条平行街道，清末民初的建筑风格。采耳、川剧变脸、盖碗茶，老成都生活的缩影。</div>
+      <div class="t-food">推荐：老成都三大炮、伤心凉粉、夫妻肺片。正餐可选附近的蜀九香火锅，人均100-130元</div>
+      <div class="t-tip">采耳体验约40-60元/人，在巷子里找手艺好的老师傅</div>
+    </div>
+  </div>
+</div>
+
+<!-- Day 3 -->
+<div class="day-card day3" data-daycard="2">
+  <div class="day-header">
+    <div class="day-num">D3</div>
+    <div>
+      <div class="day-title">大熊猫基地 · 文殊院 · 九眼桥</div>
+      <div class="day-subtitle">🐼 看国宝 + 烟火成都</div>
+    </div>
+  </div>
+  <div class="timeline">
+    <div class="t-item highlight">
+      <div class="t-time">09:30 - 10:00</div>
+      <div class="t-place">⏰ 今天需要早一点！</div>
+      <div class="t-desc">熊猫上午最活跃，建议这天比平时早起1小时，打车前往熊猫基地（约30分钟）。</div>
+      <div class="t-tip">一定要提前在官方公众号预约购票！旺季经常约满</div>
+    </div>
+    <div class="t-item highlight">
+      <div class="t-time">10:00 - 13:00</div>
+      <div class="t-place">🐼 成都大熊猫繁育研究基地</div>
+      <div class="t-desc">近距离观看大熊猫、小熊猫、熊猫幼崽。太阳产房和月亮产房是核心区域。园区很大，建议坐观光车到山顶再往下走。</div>
+      <div class="t-ticket">门票55元/人，观光车10元/人</div>
+      <div class="t-food">园区内有餐厅，但建议出来后再吃，选择更多</div>
+    </div>
+    <div class="t-item">
+      <div class="t-time">13:30 - 14:30</div>
+      <div class="t-place">🍜 午餐</div>
+      <div class="t-food">推荐：回市区吃冒椒火辣（串串）或者集渔·泰式海鲜火锅，人均80-120元</div>
+    </div>
+    <div class="t-item highlight">
+      <div class="t-time">15:00 - 17:00</div>
+      <div class="t-place">🛕 文殊院</div>
+      <div class="t-desc">成都著名佛教寺院，始建于隋朝。院内香火旺盛，周边有文殊坊小吃街。寺内可以免费领取三炷香。</div>
+      <div class="t-ticket">免费开放</div>
+      <div class="t-food">文殊坊小吃：洞子口张凉粉（豆花、甜水面必点）、严太婆锅盔</div>
+    </div>
+    <div class="t-item">
+      <div class="t-time">17:30 - 19:00</div>
+      <div class="t-place">🎨 东郊记忆</div>
+      <div class="t-desc">原成都东区音乐公园，工业风文创园区，拍照出片，经常有展览和演出。</div>
+      <div class="t-ticket">免费开放，部分展览单独收费</div>
+    </div>
+    <div class="t-item highlight">
+      <div class="t-time">20:00 - 22:30</div>
+      <div class="t-place">🌉 九眼桥 · 兰桂坊</div>
+      <div class="t-desc">成都夜生活聚集地，沿河酒吧街氛围很好。可以找一家清吧坐坐，听听民谣，看府南河夜景。</div>
+      <div class="t-food">推荐：随便找家河边清吧，啤酒+小食，人均60-100元</div>
+    </div>
+  </div>
+</div>
+
+<!-- Day 4 -->
+<div class="day-card day4" data-daycard="3">
+  <div class="day-header">
+    <div class="day-num">D4</div>
+    <div>
+      <div class="day-title">都江堰 · 青城山</div>
+      <div class="day-subtitle">🏔️ 拜水都江堰 · 问道青城山</div>
+    </div>
+  </div>
+  <div class="timeline">
+    <div class="t-item highlight">
+      <div class="t-time">08:30 - 09:00</div>
+      <div class="t-place">⏰ 今天也需要早起！</div>
+      <div class="t-desc">都江堰+青城山一日游行程较紧，建议8:30出发。</div>
+      <div class="t-tip">成都东站/犀浦站坐城际高铁到都江堰站，约30分钟，票价10元/人。也可包车前往（约300-400元/天）</div>
+    </div>
+    <div class="t-item highlight">
+      <div class="t-time">09:30 - 12:30</div>
+      <div class="t-place">💧 都江堰景区</div>
+      <div class="t-desc">世界文化遗产，2200多年前李冰父子修建的水利工程至今仍在运行。鱼嘴分水堤、飞沙堰、宝瓶口是核心三大工程，安澜索桥可以走一走。</div>
+      <div class="t-ticket">门票80元/人</div>
+      <div class="t-tip">从离堆公园入口进，走到鱼嘴后原路返回或从另一侧出，全程约2.5-3小时</div>
+    </div>
+    <div class="t-item">
+      <div class="t-time">12:30 - 13:30</div>
+      <div class="t-place">🍜 午餐</div>
+      <div class="t-food">都江堰南桥附近吃饭，推荐：白果炖鸡、青城山老腊肉、都江堰凉粉。人均60-80元</div>
+    </div>
+    <div class="t-item highlight">
+      <div class="t-time">14:00 - 17:30</div>
+      <div class="t-place">🏔️ 青城山（前山）</div>
+      <div class="t-desc">道教名山，空气清新，古树参天。建议坐索道上山、步行下山，沿途有天师洞、上清宫等道观。</div>
+      <div class="t-ticket">门票80元/人，索道往返60元/人（建议单程上35元，步行下山）</div>
+      <div class="t-tip">前山适合半日游，后山更适合徒步爱好者（需1整天）</div>
+    </div>
+    <div class="t-item">
+      <div class="t-time">17:30 - 19:00</div>
+      <div class="t-place">🚄 返回成都</div>
+      <div class="t-desc">青城山站坐高铁返回成都，约40分钟。</div>
+    </div>
+    <div class="t-item">
+      <div class="t-time">19:30 - 21:00</div>
+      <div class="t-place">🍜 晚餐</div>
+      <div class="t-food">回成都犒劳自己：大龙燚火锅/小龙坎火锅，九宫格鸳鸯锅，毛肚鹅肠黄喉必点，人均120-150元</div>
+    </div>
+  </div>
+</div>
+
+<!-- Day 5 -->
+<div class="day-card day5" data-daycard="4">
+  <div class="day-header">
+    <div class="day-num">D5</div>
+    <div>
+      <div class="day-title">人民公园 · 慢生活 · 返程</div>
+      <div class="day-subtitle">☕ 最后感受一次成都的悠闲</div>
+    </div>
+  </div>
+  <div class="timeline">
+    <div class="t-item highlight">
+      <div class="t-time">10:00 - 12:00</div>
+      <div class="t-place">☕ 人民公园 · 鹤鸣茶社</div>
+      <div class="t-desc">最能体验成都慢生活的地方。在百年老茶社鹤鸣茶社点一碗盖碗茶，嗑瓜子、晒太阳、看大爷大妈打牌跳舞。不赶路的旅行才是成都的正确打开方式。</div>
+      <div class="t-ticket">公园免费，盖碗茶15-30元/碗</div>
+      <div class="t-tip">体验掏耳朵约40元/人，公园里的掏耳师傅手艺绝了</div>
+    </div>
+    <div class="t-item">
+      <div class="t-time">12:00 - 13:30</div>
+      <div class="t-place">🍜 最后一顿成都美食</div>
+      <div class="t-food">推荐：陈麻婆豆腐（总店）点正宗麻婆豆腐，或者来碗甜水面+红油水饺作为告别餐。人均50-70元</div>
+    </div>
+    <div class="t-item">
+      <div class="t-time">13:30 - 14:30</div>
+      <div class="t-place">🏨 回酒店退房</div>
+      <div class="t-desc">收拾行李，退房。可以在酒店寄存行李后再出发去机场。</div>
+    </div>
+    <div class="t-item highlight">
+      <div class="t-time">14:30 - 16:00</div>
+      <div class="t-place">🚇 前往天府机场</div>
+      <div class="t-desc">地铁18号线到天府机场约1-1.5小时，或打车约45分钟（200元左右）。建议至少提前2小时到机场。</div>
+    </div>
+    <div class="t-item">
+      <div class="t-time">17:00 - 20:00</div>
+      <div class="t-place">✈️ 成都天府机场 → 杭州萧山机场</div>
+      <div class="t-desc">建议选下午5-6点航班，飞行约2.5-3小时，晚上8-9点到杭州。</div>
+      <div class="t-tip">天府机场免税店可以逛逛，川味特产在机场也能买到（但价格略贵）</div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- 交通信息 -->
+<div class="module" data-module="traffic">
+<h2 class="section-title" id="section-traffic">✈️ 交通信息</h2>
+<div class="info-grid">
+  <div class="info-card">
+    <h3><span class="icon">✈️</span>航班信息</h3>
+    <table class="info-table">
+      <tr><th>航段</th><th>时长</th><th>票价区间</th></tr>
+      <tr><td>杭州→成都</td><td>约3小时</td><td>800-1500元/人</td></tr>
+      <tr><td>成都→杭州</td><td>约2.5小时</td><td>800-1500元/人</td></tr>
+    </table>
+    <div class="t-tip" style="margin-top:12px">建议提前2-3周购票，关注各航司会员日（如川航周二、国航周三）抢特价票</div>
+  </div>
+  <div class="info-card">
+    <h3><span class="icon">🚇</span>机场到市区</h3>
+    <table class="info-table">
+      <tr><th>方式</th><th>时长</th><th>费用</th></tr>
+      <tr><td>地铁18号线</td><td>60-90分钟</td><td>~10元/人</td></tr>
+      <tr><td>机场大巴</td><td>60-80分钟</td><td>~30元/人</td></tr>
+      <tr><td>打车/网约车</td><td>40-50分钟</td><td>~200元</td></tr>
+    </table>
+    <div class="t-tip" style="margin-top:12px">2人出行打车性价比不错，人均100元且省时省力</div>
+  </div>
+  <div class="info-card">
+    <h3><span class="icon">🚕</span>市内交通</h3>
+    <table class="info-table">
+      <tr><th>方式</th><th>适用场景</th><th>费用</th></tr>
+      <tr><td>地铁</td><td>市区景点间</td><td>2-7元/次</td></tr>
+      <tr><td>打车</td><td>灵活出行</td><td>起步9元</td></tr>
+      <tr><td>公交</td><td>短途</td><td>2元/次</td></tr>
+    </table>
+    <div class="t-tip" style="margin-top:12px">成都打车便宜，市区景点间打车一般10-30元，比地铁方便</div>
+  </div>
+  <div class="info-card">
+    <h3><span class="icon">🚄</span>都江堰交通</h3>
+    <table class="info-table">
+      <tr><th>方式</th><th>时长</th><th>费用</th></tr>
+      <tr><td>城际高铁</td><td>30-40分钟</td><td>10元/人</td></tr>
+      <tr><td>都江堰→青城山</td><td>打车20分钟</td><td>~30元</td></tr>
+      <tr><td>包车一日游</td><td>全天</td><td>300-400元</td></tr>
+    </table>
+    <div class="t-tip" style="margin-top:12px">如果不想折腾，包车一日游最省心，司机还能当半个导游</div>
+  </div>
+</div>
+
+<div class="tips-card" style="margin-top:20px">
+  <h3 style="margin-bottom:12px;color:#00b894">✈️ 出行交通建议</h3>
+  <div class="tip-item"><span class="tip-icon">🎫</span><b>机票购买</b>：建议提前2-3周购票最划算。关注川航会员日（每周二）、国航会员日（每周三）抢特价。各OTA平台（飞猪/携程/去哪儿）经常有满减券</div>
+  <div class="tip-item"><span class="tip-icon">✈️</span><b>机场选择</b>：成都有天府机场（主力）和双流机场（部分航线），购票时注意看清是哪个机场，两个机场相距约50km</div>
+  <div class="tip-item"><span class="tip-icon">💺</span><b>选座建议</b>：去程靠右窗可看到云海和雪山，回程靠左窗。提前在航司APP值机选座</div>
+  <div class="tip-item"><span class="tip-icon">🚇</span><b>市内交通</b>：成都打车便宜且方便（起步价9元），市区景点间打车一般10-30元。地铁覆盖主要景点，高峰期优先地铁。建议支付宝开通成都天府通乘车码</div>
+  <div class="tip-item"><span class="tip-icon">⏰</span><b>时间预留</b>：天府机场较远，至少提前2.5小时出发去机场。地铁18号线首末班车时间需提前查好</div>
+</div>
+</div>
+
+<!-- 住宿建议 -->
+<div class="module" data-module="hotel">
+<h2 class="section-title" id="section-hotel">🏨 住宿建议</h2>
+<div class="tips-card">
+  <div class="tip-item"><span class="tip-icon">📍</span><b>推荐区域</b>：<b>春熙路/太古里</b>（首选，交通枢纽+美食集中+逛街方便）、<b>宽窄巷子附近</b>（文艺氛围好）、<b>天府广场</b>（地铁换乘便利）</div>
+  <div class="tip-item"><span class="tip-icon">🏠</span><b>连住策略</b>：强烈建议4晚连住同一家酒店，免去每天搬行李的麻烦。都江堰当天往返无需换酒店</div>
+  <div class="tip-item"><span class="tip-icon">💰</span><b>价位参考</b>：经济型（如汉庭/如家）150-250元/晚 | 中档型（如全季/亚朵）300-500元/晚 | 高端型（如太古里博舍）800-1500元/晚</div>
+  <div class="tip-item"><span class="tip-icon">📱</span><b>预订平台</b>：美团/携程比价，提前1-2周预订价格最优。节假日务必提前预订，热门区域会涨价2-3倍</div>
+</div>
+</div>
+
+<!-- 费用明细 -->
+<div class="module" data-module="cost">
+<h2 class="section-title" id="section-cost">💰 费用预估（2人）</h2>
+<div class="cost-card">
+  <div class="cost-row"><span class="cost-label">✈️ 机票往返（2人）</span><span class="cost-value">3,200 - 6,000 元</span></div>
+  <div class="cost-row"><span class="cost-label">🏨 住宿（4晚 × 中档酒店）</span><span class="cost-value">1,200 - 2,000 元</span></div>
+  <div class="cost-row"><span class="cost-label">🎫 门票（武侯祠+草堂+熊猫+都江堰+青城山）× 2人</span><span class="cost-value">~630 元</span></div>
+  <div class="cost-row"><span class="cost-label">🍜 餐饮（5天 × 2人）</span><span class="cost-value">1,000 - 1,500 元</span></div>
+  <div class="cost-row"><span class="cost-label">🚕 市内交通（打车+地铁 × 5天）</span><span class="cost-value">400 - 600 元</span></div>
+  <div class="cost-row"><span class="cost-label">🚇 机场交通（往返）</span><span class="cost-value">40 - 400 元</span></div>
+  <div class="cost-row"><span class="cost-label">🚄 都江堰交通</span><span class="cost-value">100 - 400 元</span></div>
+  <div class="cost-row total"><span class="cost-label">💰 合计预估</span><span class="cost-value">6,500 - 11,500 元</span></div>
+  <div style="text-align:center;color:#888;font-size:.85em;margin-top:10px">* 实际费用取决于机票价格和住宿档次，提前预订可显著降低成本</div>
+</div>
+</div>
+
+<!-- 天气与穿搭 -->
+<div class="module" data-module="weather">
+<h2 class="section-title" id="section-weather">🌦️ 天气与穿搭</h2>
+<div class="tips-card">
+  <div class="tip-item"><span class="tip-icon">☁️</span><b>气候特点</b>：成都素有"蜀犬吠日"之说，多阴天少晴天，湿度大。年均降雨天数约300天，随时可能飘雨</div>
+  <div class="tip-item"><span class="tip-icon">🌡️</span><b>春季（3-5月）</b>：气温12-25°C，早晚凉，中午暖。建议穿长袖+薄外套，备一件冲锋衣或防风外套</div>
+  <div class="tip-item"><span class="tip-icon">☀️</span><b>夏季（6-8月）</b>：气温25-35°C，闷热潮湿。穿短袖短裤，带防晒霜、墨镜。青城山上会凉快些</div>
+  <div class="tip-item"><span class="tip-icon">🍂</span><b>秋季（9-11月）</b>：气温15-25°C，最舒适的季节。长袖+薄外套即可，早晚加件卫衣</div>
+  <div class="tip-item"><span class="tip-icon">❄️</span><b>冬季（12-2月）</b>：气温3-10°C，湿冷入骨（比北方干冷更难受）。穿羽绒服+保暖内衣，建议贴暖宝宝</div>
+  <div class="tip-item"><span class="tip-icon">☂️</span><b>必备</b>：无论什么季节都要带一把折叠伞！成都的雨说来就来，且经常是绵绵细雨</div>
+</div>
+</div>
+
+<!-- 饮食注意 -->
+<div class="module" data-module="food">
+<h2 class="section-title" id="section-food">🌶️ 饮食指南</h2>
+<div class="tips-card">
+  <div class="tip-item"><span class="tip-icon">🔥</span><b>口味特点</b>：成都菜以"麻辣"为主，花椒的麻+辣椒的辣是灵魂。微辣≈外地的中辣，中辣≈外地的变态辣，点菜时务必确认辣度</div>
+  <div class="tip-item"><span class="tip-icon">🍲</span><b>火锅技巧</b>：怕辣点鸳鸯锅（一半辣一半清汤），毛肚七上八下涮15秒最嫩，鹅肠同理。油碟（香油+蒜泥）能有效降辣</div>
+  <div class="tip-item"><span class="tip-icon">💊</span><b>肠胃准备</b>：肠胃敏感者务必备好肠胃药（如蒙脱石散、藿香正气水）。第一天不要猛吃辣，给肠胃适应期</div>
+  <div class="tip-item"><span class="tip-icon">🥤</span><b>解辣神器</b>：酸梅汤（成都街头随处可见）、冰粉（醪糟冰粉最经典）、凉虾。牛奶比水更解辣</div>
+  <div class="tip-item"><span class="tip-icon">🐰</span><b>特色必吃</b>：火锅/串串、兔头（麻辣/五香）、甜水面、钵钵鸡、蛋烘糕、冒菜、肥肠粉+锅盔</div>
+  <div class="tip-item"><span class="tip-icon">💡</span><b>小贴士</b>：成都本地人吃饭偏晚，火锅店晚上7-9点高峰期排队严重，建议提前取号或错峰用餐</div>
+</div>
+</div>
+
+<!-- 注意事项 -->
+<div class="module" data-module="tips">
+<h2 class="section-title" id="section-tips">📌 注意事项</h2>
+
+<!-- 门票预约 -->
+<div class="tips-card" style="margin-bottom:16px">
+  <h3 style="margin-bottom:12px;color:#6c5ce7">🎫 门票预约</h3>
+  <div class="tip-item"><span class="tip-icon">🐼</span><b>大熊猫繁育研究基地</b>：必须提前在"成都大熊猫繁育研究基地"官方公众号/小程序预约，旺季（节假日/寒暑假）建议提前3-5天预约，经常约满</div>
+  <div class="tip-item"><span class="tip-icon">⚔️</span><b>武侯祠</b>：关注"成都武侯祠博物馆"公众号预约，建议提前1-2天，节假日提前3天</div>
+  <div class="tip-item"><span class="tip-icon">🏡</span><b>杜甫草堂</b>：关注"成都杜甫草堂博物馆"公众号预约，工作日一般当天可约，周末建议提前1天</div>
+  <div class="tip-item"><span class="tip-icon">💧</span><b>都江堰 & 青城山</b>：可通过美团/携程购票，也可景区现场购买，一般不会约满。建议网上买有优惠</div>
+  <div class="tip-item"><span class="tip-icon">💡</span><b>通用建议</b>：所有景点均支持身份证直接入园，购票时绑定身份证号，无需取纸质票</div>
+</div>
+
+<!-- 景点特别提醒 -->
+<div class="tips-card" style="margin-bottom:16px">
+  <h3 style="margin-bottom:12px;color:#e17055">🏔️ 景点特别提醒</h3>
+  <div class="tip-item"><span class="tip-icon">🐼</span><b>熊猫基地</b>：上午9-11点熊猫最活跃（吃竹子、玩耍），下午基本都在睡觉。建议坐观光车到山顶再往下走，省体力还能先看幼崽。带防晒和充足的水</div>
+  <div class="tip-item"><span class="tip-icon">⚔️</span><b>武侯祠</b>：红墙竹影（从武侯祠到锦里的红墙小路）是经典拍照点，建议工作日去人少。讲解器20元值得租</div>
+  <div class="tip-item"><span class="tip-icon">🏮</span><b>宽窄巷子 & 锦里</b>：白天逛不如晚上逛，灯笼亮起后氛围感拉满。周末和节假日人挤人，建议工作日或晚上8点后去</div>
+  <div class="tip-item"><span class="tip-icon">🏔️</span><b>青城山</b>：穿舒适运动鞋（台阶多且可能湿滑），带一瓶水和少量干粮。建议索道上+步行下山，全程约3-4小时。山上道观可免费领香</div>
+  <div class="tip-item"><span class="tip-icon">💧</span><b>都江堰</b>：从离堆公园入口进最佳，依次看宝瓶口→飞沙堰→鱼嘴。走安澜索桥时不要太多人同时走，会晃。全程约2.5-3小时</div>
+  <div class="tip-item"><span class="tip-icon">☕</span><b>人民公园</b>：鹤鸣茶社周末人多，工作日去更惬意。一碗盖碗茶可以坐一下午，体验真正的成都慢生活</div>
+</div>
+
+<!-- 实用APP -->
+<div class="tips-card" style="margin-bottom:16px">
+  <h3 style="margin-bottom:12px;color:#0984e3">📱 实用APP</h3>
+  <div class="tip-item"><span class="tip-icon">🗺️</span><b>导航</b>：高德地图（成都本地最准）/ 百度地图</div>
+  <div class="tip-item"><span class="tip-icon">🍜</span><b>美食</b>：大众点评（找餐厅、看评价、排队取号）/ 美团（团购优惠）</div>
+  <div class="tip-item"><span class="tip-icon">🎫</span><b>票务</b>：12306（买都江堰高铁票）/ 航旅纵横（航班动态、值机选座）/ 各景点官方公众号（预约门票）</div>
+  <div class="tip-item"><span class="tip-icon">🚕</span><b>出行</b>：滴滴出行（打车）/ 支付宝-天府通乘车码（地铁公交）</div>
+  <div class="tip-item"><span class="tip-icon">📸</span><b>其他</b>：小红书（搜成都攻略和打卡点）/ 携程/飞猪（订酒店比价）</div>
+</div>
+
+<!-- 安全与应急 -->
+<div class="tips-card">
+  <h3 style="margin-bottom:12px;color:#e74c3c">⚠️ 安全与应急</h3>
+  <div class="tip-item"><span class="tip-icon">💊</span><b>随身药品</b>：肠胃药（蒙脱石散/藿香正气水）、晕车药（去青城山山路弯道多）、创可贴、防蚊液（夏季）、感冒药</div>
+  <div class="tip-item"><span class="tip-icon">🎒</span><b>贵重物品</b>：春熙路、锦里、宽窄巷子等热门景区人流密集，注意随身包包和手机。建议用斜挎包或前背</div>
+  <div class="tip-item"><span class="tip-icon">📞</span><b>紧急电话</b>：报警110 | 急救120 | 旅游投诉12345 | 都江堰景区救援028-87283890 | 青城山景区028-87111907</div>
+  <div class="tip-item"><span class="tip-icon">🏥</span><b>就近医院</b>：华西医院（成都最好的医院，春熙路打车15分钟可达）</div>
+  <div class="tip-item"><span class="tip-icon">⚡</span><b>充电宝</b>：一天在外游玩手机电量消耗快（导航+拍照），建议自带充电宝或用街边共享充电宝（美团扫码）</div>
+</div>
+</div>
+
+</div>
+
+<div style="text-align:center;color:rgba(255,255,255,.6);padding:20px;font-size:.8em">
+  杭州→成都 5日攻略 | 由 AI 生成 | 祝旅途愉快 🎒
+</div>
+
+<button class="back-top" title="返回顶部"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg></button>
+
+<script>
+// GCJ-02 坐标转换
+var PI=3.14159265358979324,A=6378245.0,EE=0.00669342162296594323;
+function tLat(x,y){var r=-100+2*x+3*y+.2*y*y+.1*x*y+.2*Math.sqrt(Math.abs(x));r+=(20*Math.sin(6*x*PI)+20*Math.sin(2*x*PI))*2/3;r+=(20*Math.sin(y*PI)+40*Math.sin(y/3*PI))*2/3;r+=(160*Math.sin(y/12*PI)+320*Math.sin(y*PI/30))*2/3;return r}
+function tLng(x,y){var r=300+x+2*y+.1*x*x+.1*x*y+.1*Math.sqrt(Math.abs(x));r+=(20*Math.sin(6*x*PI)+20*Math.sin(2*x*PI))*2/3;r+=(20*Math.sin(x*PI)+40*Math.sin(x/3*PI))*2/3;r+=(150*Math.sin(x/12*PI)+300*Math.sin(x/30*PI))*2/3;return r}
+function gc(lat,lng){var dLat=tLat(lng-105,lat-35),dLng=tLng(lng-105,lat-35),rLat=lat/180*PI,m=Math.sin(rLat);m=1-EE*m*m;var sq=Math.sqrt(m);dLat=(dLat*180)/((A*(1-EE))/(m*sq)*PI);dLng=(dLng*180)/(A/sq*Math.cos(rLat)*PI);return[lat+dLat,lng+dLng]}
+
+// 景点数据 (WGS-84坐标，显示时转换)
+var spots = {
+  // Day 1
+  tianfu_airport: {name:'天府国际机场', lat:30.3145, lng:104.4452, day:0, desc:'成都天府国际机场，距市区约50km', icon:'✈️'},
+  chunxi: {name:'春熙路·太古里', lat:30.6571, lng:104.0817, day:0, desc:'成都最繁华商圈，IFS爬墙熊猫地标<br>🍜 龙抄手、钟水饺、赖汤圆', icon:'🛍️'},
+  ifs: {name:'IFS国际金融中心', lat:30.6585, lng:104.0803, day:0, desc:'楼顶爬墙大熊猫是必打卡地标', icon:'🐼'},
+  jinli: {name:'锦里古街', lat:30.6455, lng:104.0485, day:0, desc:'成都名片级古街，夜景绝美<br>🍜 三大炮、糖油果子、兔头', icon:'🏮'},
+  // Day 2
+  wuhou: {name:'武侯祠', lat:30.6440, lng:104.0475, day:1, desc:'中国唯一君臣合祀祠庙<br>🎫 门票50元/人<br>📸 红墙竹影打卡点', icon:'⚔️'},
+  caotang: {name:'杜甫草堂', lat:30.6595, lng:104.0340, day:1, desc:'杜甫流寓成都故居，园林清幽<br>🎫 门票50元/人', icon:'🏡'},
+  huanhua: {name:'浣花溪公园', lat:30.6550, lng:104.0310, day:1, desc:'免费市民公园，沿溪散步惬意', icon:'🌿'},
+  kuanzhai: {name:'宽窄巷子', lat:30.6700, lng:104.0555, day:1, desc:'清末民初老建筑，采耳·川剧·盖碗茶<br>🍜 蜀九香火锅', icon:'🏮'},
+  // Day 3
+  panda: {name:'大熊猫繁育研究基地', lat:30.7340, lng:104.1460, day:2, desc:'近距离看大熊猫和幼崽<br>🎫 门票55元/人<br>💡 上午去最佳', icon:'🐼'},
+  wenshu: {name:'文殊院', lat:30.6770, lng:104.0645, day:2, desc:'成都著名佛教寺院，免费开放<br>🍜 洞子口张凉粉', icon:'🛕'},
+  dongjiao: {name:'东郊记忆', lat:30.6530, lng:104.1190, day:2, desc:'工业风文创园区，拍照出片', icon:'🎨'},
+  jiuyanqiao: {name:'九眼桥', lat:30.6425, lng:104.0880, day:2, desc:'成都夜生活地标，沿河酒吧街', icon:'🌉'},
+  // Day 4
+  dujiangyan: {name:'都江堰', lat:30.9980, lng:103.6170, day:3, desc:'世界文化遗产·2200年水利工程<br>🎫 门票80元/人<br>📸 鱼嘴·飞沙堰·宝瓶口', icon:'💧'},
+  qingcheng: {name:'青城山', lat:30.8980, lng:103.5750, day:3, desc:'道教名山·空气清新<br>🎫 门票80元+索道35元/人<br>📸 天师洞·上清宫', icon:'🏔️'},
+  // Day 5
+  renmin: {name:'人民公园', lat:30.6625, lng:104.0598, day:4, desc:'鹤鸣茶社·盖碗茶·掏耳朵<br>体验成都慢生活', icon:'☕'}
+};
+
+// 颜色
+var dayColors = ['#0984e3','#00b894','#e17055','#6c5ce7','#f39c12'];
+var dayNames = ['Day1 抵达','Day2 经典','Day3 熊猫','Day4 都江堰','Day5 返程'];
+
+// 初始化地图
+var center = gc(30.66, 104.06);
+var map = L.map('map',{tap:false}).setView(center, 12);
+L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}',{
+  subdomains:'1234',
+  maxZoom:18,
+  attribution:'&copy; 高德地图'
+}).addTo(map);
+
+// 存储图层
+var dayLayers = [[],[],[],[],[]];
+var allLayers = [];
+
+// 创建标记
+function addMarker(spot, dayIdx){
+  var c = gc(spot.lat, spot.lng);
+  var marker = L.marker(c, {
+    icon: L.divIcon({
+      className:'',
+      html:'<div style="background:'+dayColors[dayIdx]+';color:#fff;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 2px 8px rgba(0,0,0,.3);border:2px solid #fff">'+spot.icon+'</div>',
+      iconSize:[32,32],
+      iconAnchor:[16,16]
+    })
+  }).bindPopup('<div style="min-width:200px"><b style="font-size:1.1em">'+spot.icon+' '+spot.name+'</b><br><span style="color:#888;font-size:.85em">'+dayNames[dayIdx]+'</span><hr style="margin:6px 0;border-color:#eee">'+spot.desc+'</div>');
+  dayLayers[dayIdx].push(marker);
+  allLayers.push(marker);
+  return marker;
+}
+
+// 按天分组的景点顺序（用于画路线）
+var dayRoutes = [
+  ['tianfu_airport','chunxi','jinli'],
+  ['wuhou','caotang','huanhua','kuanzhai'],
+  ['panda','wenshu','dongjiao','jiuyanqiao'],
+  ['dujiangyan','qingcheng'],
+  ['renmin','tianfu_airport']
+];
+
+// 画路线
+dayRoutes.forEach(function(route, dayIdx){
+  var points = route.map(function(key){
+    var s = spots[key];
+    addMarker(s, dayIdx);
+    return gc(s.lat, s.lng);
+  });
+  if(points.length > 1){
+    var line = L.polyline(points, {
+      color: dayColors[dayIdx],
+      weight: 4,
+      opacity: 0.7,
+      dashArray: dayIdx === 0 ? '10,6' : null,
+      smoothFactor: 1.5
+    });
+    dayLayers[dayIdx].push(line);
+    allLayers.push(line);
+  }
+});
+
+// 默认显示全部
+allLayers.forEach(function(l){l.addTo(map)});
+
+// 切换天
+function showDay(day){
+  // 更新按钮状态
+  document.querySelectorAll('.day-btn').forEach(function(b){b.classList.remove('active')});
+  document.querySelector('.day-btn[data-day="'+day+'"]').classList.add('active');
+  // 清除所有图层
+  allLayers.forEach(function(l){map.removeLayer(l)});
+  // 控制模块显隐
+  var modules = document.querySelectorAll('.module');
+  var cards = document.querySelectorAll('.day-card[data-daycard]');
+  if(day === 'all'){
+    allLayers.forEach(function(l){l.addTo(map)});
+    map.setView(center, 12);
+    // 显示所有模块和卡片
+    modules.forEach(function(m){m.style.display=''});
+    cards.forEach(function(c){c.style.display=''});
+  } else {
+    var layers = dayLayers[day];
+    layers.forEach(function(l){l.addTo(map)});
+    var bounds = L.latLngBounds([]);
+    layers.forEach(function(l){
+      if(l.getLatLng) bounds.extend(l.getLatLng());
+      if(l.getBounds) bounds.extend(l.getBounds());
+    });
+    if(bounds.isValid()) map.fitBounds(bounds, {padding:[50,50]});
+    // 只显示行程模块，隐藏交通/费用/注意事项
+    modules.forEach(function(m){
+      m.style.display = m.getAttribute('data-module') === 'days' ? '' : 'none';
+    });
+    // 只显示对应天的卡片
+    cards.forEach(function(c){
+      c.style.display = c.getAttribute('data-daycard') == day ? '' : 'none';
+    });
+  }
+}
+
+// 确保地图正确渲染
+setTimeout(function(){map.invalidateSize()},200);
+setTimeout(function(){map.invalidateSize()},1000);
+
+// 导航到指定模块
+function scrollToSection(id){
+  var moduleMap = {'section-traffic':'traffic','section-hotel':'hotel','section-cost':'cost','section-weather':'weather','section-food':'food','section-tips':'tips'};
+  var modules = document.querySelectorAll('.module');
+  // 只显示对应模块
+  modules.forEach(function(m){
+    m.style.display = m.getAttribute('data-module') === moduleMap[id] ? '' : 'none';
+  });
+  // 更新按钮状态
+  document.querySelectorAll('.day-btn').forEach(function(b){b.classList.remove('active')});
+}
+
+// 返回顶部按钮
+var backBtn = document.querySelector('.back-top');
+window.addEventListener('scroll', function(){
+  if(window.scrollY > 600){
+    backBtn.classList.add('show');
+  } else {
+    backBtn.classList.remove('show');
+  }
+});
+backBtn.addEventListener('click', function(){
+  window.scrollTo({top:0, behavior:'smooth'});
+});
+</script>
+
+</body>
+</html>
