@@ -58,6 +58,13 @@ C:\Users\你的用户名\.claude\commands\trip.md
 - 地图瓦片源（当前是高德地图）
 - 行程规划规则（如起床时间、续航余量比例等）
 
+## 在线预览
+
+点击直接查看效果（PC/手机均可）：
+
+- [金华三日自驾攻略（双龙洞+诸葛八卦村+横店）](https://aibaaoimasaki-sudo.github.io/trip-skill/示例-金华三日攻略.html)
+- [无锡+扬州串联攻略（樱花+早茶+园林）](https://aibaaoimasaki-sudo.github.io/trip-skill/示例-无锡扬州串联攻略.html)
+
 ## 示例效果
 
 生成的页面包含：
